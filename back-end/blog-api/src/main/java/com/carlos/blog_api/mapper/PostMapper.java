@@ -1,10 +1,8 @@
 package com.carlos.blog_api.mapper;
 
 import com.carlos.blog_api.dto.PostDTO;
-import com.carlos.blog_api.dto.PostDTOCreate;
-import com.carlos.blog_api.dto.UserDTO;
+import com.carlos.blog_api.dto.PostDTOCreateUpdate;
 import com.carlos.blog_api.entity.PostEntity;
-import com.carlos.blog_api.entity.UserEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
@@ -19,6 +17,7 @@ public interface PostMapper {
     PostDTO convertToDTO(PostEntity post);
 
     @Mapping(target = "user", ignore = true)
+    @Mapping(target = "comments", ignore = true)
     PostEntity convertToEntity(PostDTO postDTO);
 
     @Mapping(target = "idPost", ignore = true)
@@ -27,8 +26,9 @@ public interface PostMapper {
     @Mapping(target = "statusPost", ignore = true)
     @Mapping(target = "idUser", ignore = true)
     @Mapping(target = "user", ignore = true)
-    PostEntity convertToEntityCreate(PostDTOCreate postDTO);
+    @Mapping(target = "comments", ignore = true)
+    PostEntity convertToEntityCreate(PostDTOCreateUpdate postDTO);
 
-    PostDTOCreate convertToDTOCreate(PostEntity post);
+    PostDTOCreateUpdate convertToDTOCreate(PostEntity post);
 
 }

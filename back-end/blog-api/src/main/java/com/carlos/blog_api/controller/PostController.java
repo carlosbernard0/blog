@@ -1,7 +1,7 @@
 package com.carlos.blog_api.controller;
 
 import com.carlos.blog_api.dto.PostDTO;
-import com.carlos.blog_api.dto.PostDTOCreate;
+import com.carlos.blog_api.dto.PostDTOCreateUpdate;
 import com.carlos.blog_api.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -27,12 +27,12 @@ public class PostController {
     }
 
 
-    @PostMapping("/{id}")
-    public PostDTO createPost(@RequestBody PostDTOCreate post, Integer id){
-        return postService.createPost(post,id);
+    @PostMapping("/{idUser}")
+    public PostDTO createPost(@RequestBody PostDTOCreateUpdate post, Integer idUser){
+        return postService.createPost(post,idUser);
     }
     @PutMapping("/{idPost}")
-    public PostDTO updatePost(@RequestBody PostDTOCreate postDTO, @PathVariable Integer idPost){
+    public PostDTO updatePost(@RequestBody PostDTOCreateUpdate postDTO, @PathVariable Integer idPost){
         return postService.updatePost(postDTO, idPost);
     }
 

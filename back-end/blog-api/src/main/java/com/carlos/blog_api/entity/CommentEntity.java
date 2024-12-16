@@ -8,35 +8,28 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Date;
-import java.util.Set;
 
 @Entity
-@Table(name = "Posts")
+@Table(name = "Comments")
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class PostEntity {
+public class CommentEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_post")
-    private Integer idPost;
+    @Column(name = "id_comment")
+    private Integer idComment;
 
-    @Column(name = "title_post")
-    private String titlePost;
-
-    @Column(name = "content_post")
-    private String contentPost;
+    @Column(name = "content_comment")
+    private String contentComment;
 
     @Column(name = "create_date")
     private Date createDate;
 
     @Column(name = "update_date")
     private Date updateDate;
-
-    @Column(name = "status_post")
-    private PostStatus statusPost;
 
     @Column(name = "id_user", insertable = false, updatable = false)
     private Integer idUser;
@@ -45,7 +38,11 @@ public class PostEntity {
     @JoinColumn(name = "id_user", referencedColumnName = "id_user")
     private UserEntity user;
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "post")
-    private Set<CommentEntity> comments;
+    @Column(name = "id_post", insertable = false, updatable = false)
+    private Integer idPost;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_post", referencedColumnName = "id_post")
+    private PostEntity post;
 
 }

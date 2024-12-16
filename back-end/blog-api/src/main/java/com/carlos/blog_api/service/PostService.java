@@ -1,8 +1,7 @@
 package com.carlos.blog_api.service;
 
 import com.carlos.blog_api.dto.PostDTO;
-import com.carlos.blog_api.dto.PostDTOCreate;
-import com.carlos.blog_api.dto.UserDTO;
+import com.carlos.blog_api.dto.PostDTOCreateUpdate;
 import com.carlos.blog_api.entity.PostEntity;
 import com.carlos.blog_api.entity.UserEntity;
 import com.carlos.blog_api.enums.PostStatus;
@@ -23,6 +22,8 @@ public class PostService {
 
     @Autowired
     private PostMapper postMapper;
+    @Autowired
+    private UserRepository userRepository;
 
 
     public PostService(PostRepository postRepository) {
@@ -30,9 +31,11 @@ public class PostService {
     }
 
 
-    public PostDTO createPost(PostDTOCreate postDTO, Integer idUser){
+    public PostDTO createPost(PostDTOCreateUpdate postDTO, Integer idUser){
+        Optional<UserEntity> user = userRepository.findById(idUser);
         PostEntity postEntity = postMapper.convertToEntityCreate(postDTO);
-        postEntity.setIdUser(idUser);
+        postEntity.setUser(user.get());
+        postEntity.setIdUser(user.get().getIdUser());
         postEntity.setStatusPost(PostStatus.PENDING);
         postEntity.setCreateDate(new Date());
         postEntity.setUpdateDate(postEntity.getCreateDate());
@@ -53,7 +56,7 @@ public class PostService {
         return postRepository.findAll().stream().map(postMapper::convertToDTO).toList();
     }
 
-    public PostDTO updatePost(PostDTOCreate postDTO, Integer postId){
+    public PostDTO updatePost(PostDTOCreateUpdate postDTO, Integer postId){
         Optional<PostEntity> optionalPostEntity = postRepository.findById(postId);
         if(optionalPostEntity.isPresent()){
             PostEntity postUpdated = optionalPostEntity.get();

@@ -1,6 +1,5 @@
 package com.carlos.blog_api.dto;
 
-import com.carlos.blog_api.enums.PostStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
@@ -8,12 +7,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class PostDTOCreate {
+public class PostDTOCreateUpdate {
 
     @JsonProperty("titlePost")
     @Schema(description = "titulo do post", example = "Comunição Efetiva")

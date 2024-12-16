@@ -34,5 +34,8 @@ public class UserEntity {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
     private Set<PostEntity> posts;
 
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
+    private Set<CommentEntity> comments;
+
 }
 

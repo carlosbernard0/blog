@@ -16,5 +16,6 @@ public interface UserMapper {
 
 
     @Mapping(target = "posts", ignore = true)
+    @Mapping(target = "comments", ignore = true)
     UserEntity convertToEntity(UserDTO userDTO);
 }
