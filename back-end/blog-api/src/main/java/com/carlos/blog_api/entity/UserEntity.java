@@ -29,6 +29,7 @@ public class UserEntity {
     private String passwordUser;
 
     @Column(name = "role_user")
+    @Enumerated(EnumType.STRING)
     private UserRole roleUser;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")

@@ -36,6 +36,7 @@ public class PostEntity {
     private Date updateDate;
 
     @Column(name = "status_post")
+    @Enumerated(EnumType.STRING)
     private PostStatus statusPost;
 
     @Column(name = "id_user", insertable = false, updatable = false)
