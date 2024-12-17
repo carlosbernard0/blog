@@ -8,8 +8,14 @@ import com.carlos.blog_api.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -21,20 +27,19 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
+    private final AuthenticationManager authenticationManager;
 
     @Value("${api.security.token.secret}")
     private String secret;
     @Value("${api.security.token.validate}")
     private String validateJWT;
 
-    @Autowired
-    private UserMapper userMapper;
-
-
-    public UserService( UserRepository userRepository) {
+    public UserService(@Lazy AuthenticationManager authenticationManager, UserMapper userMapper,@Lazy UserRepository userRepository) {
+        this.authenticationManager = authenticationManager;
+        this.userMapper = userMapper;
         this.userRepository = userRepository;
     }
-
 
     public UserDTO createUser(UserDTO userDTO){
         UserEntity userEntity = userMapper.convertToEntity(userDTO);
@@ -72,37 +77,42 @@ public class UserService {
     }
 
     public String loginUser(AuthenticationDTO authDTO){
-        Optional<UserEntity> userEntityOptional;
-        if(authDTO.getLogin().contains("@")){
-            userEntityOptional = userRepository.findByEmailUserAndPasswordUser(authDTO.getLogin(),authDTO.getPassword());
-        }else{
-            userEntityOptional = userRepository.findByUsernameAndPasswordUser(authDTO.getLogin(), authDTO.getPassword());
-        };
-        if(!userEntityOptional.isPresent()){
+        UsernamePasswordAuthenticationToken dtoSpring = new UsernamePasswordAuthenticationToken(
+                authDTO.getLogin(),
+                authDTO.getPassword());
+
+        try{
+
+            System.out.println(dtoSpring);
+            Authentication authentication = authenticationManager.authenticate(dtoSpring);
+
+            Object userAuth = authentication.getPrincipal();
+            UserEntity userEntity = (UserEntity) userAuth;
+
+            Date dateNow = new Date();
+            Date dateExpiration = new Date(dateNow.getTime() + Long.parseLong(validateJWT));
+
+            String jwt = Jwts.builder()
+                    .setIssuer("blog-api")
+                    .setSubject(userEntity.getIdUser().toString())
+                    .setIssuedAt(new Date())
+                    .setExpiration(dateExpiration)
+                    .signWith(SignatureAlgorithm.HS256,secret)
+                    .compact();
+
+            return jwt;
+
+        }catch (AuthenticationException ex){
+            System.out.println(ex);
             throw new RuntimeException("User or Password is invalid!");
+
         }
-        UserEntity user = userEntityOptional.get();
-
-        Date dateNow = new Date();
-        Date dateExpiration = new Date(dateNow.getTime() + Long.parseLong(validateJWT));
-
-        String jwt = Jwts.builder()
-                .setIssuer("blog-api")
-                .setSubject(user.getIdUser().toString())
-                .setIssuedAt(new Date())
-                .setExpiration(dateExpiration)
-                .signWith(SignatureAlgorithm.HS256,secret)
-                .compact();
-
-        return jwt;
-
     }
 
     public UserEntity validateToken(String token) throws Exception {
         if(token == null){
             throw  new Exception("Token not found!");
         }
-        System.out.println("Token: " + token);
 
         String tokenClean = token.replace("Bearer ", "");
 
@@ -116,5 +126,9 @@ public class UserService {
         Optional<UserEntity> user = userRepository.findById(Integer.parseInt(subject));
 
         return user.orElse(null);
+    }
+
+    public Optional<UserEntity> findByUsername(String username){
+        return userRepository.findByUsername(username);
     }
 }
