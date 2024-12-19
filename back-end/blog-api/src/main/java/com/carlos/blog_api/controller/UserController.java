@@ -41,4 +41,9 @@ public class UserController {
     public void deleteUser(@PathVariable Integer idUser){
         userService.deleteUser(idUser);
     }
+
+    @PatchMapping("/{idUser}/changeAdmin")
+    public UserDTO changeAdminUser(@PathVariable Integer idUSer){
+        return userService.changeAdminUser(idUSer);
+    }
 }

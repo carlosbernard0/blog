@@ -33,7 +33,7 @@ public class SecurityFilter extends OncePerRequestFilter {
                 throw new RuntimeException("Error! User is Null.");
             }
             UsernamePasswordAuthenticationToken tokenSpring = new UsernamePasswordAuthenticationToken(
-                    userEntity, null, Collections.emptyList());
+                    userEntity, null, userEntity.getAuthorities());
 
             SecurityContextHolder.getContext().setAuthentication(tokenSpring);
 

@@ -4,6 +4,7 @@ import com.carlos.blog_api.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -29,8 +30,9 @@ public class SecurityConfiguration {
         http.csrf(AbstractHttpConfigurer::disable);
         http.cors(Customizer.withDefaults());
         http.authorizeHttpRequests((auth) ->
-//                auth.anyRequest().permitAll()
                 auth.requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.PATCH,"/api/posts/{id}/approve").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH,"/api/users/{id}/changeAdmin").hasRole("ADMIN")
                 .anyRequest().authenticated()
         );
         //adiciona o filtro de token (TokenAuthenticationFilter) e depois passa para o proximo filtro que é o UsernamePasswordAuthenticationFilter
@@ -59,5 +61,5 @@ public class SecurityConfiguration {
         return configuration.getAuthenticationManager();
     }
 }
-
+    
 

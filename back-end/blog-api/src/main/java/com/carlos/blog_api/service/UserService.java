@@ -1,8 +1,10 @@
 package com.carlos.blog_api.service;
 
 import com.carlos.blog_api.dto.AuthenticationDTO;
+import com.carlos.blog_api.dto.RegisterDTO;
 import com.carlos.blog_api.dto.UserDTO;
 import com.carlos.blog_api.entity.UserEntity;
+import com.carlos.blog_api.enums.UserRole;
 import com.carlos.blog_api.mapper.UserMapper;
 import com.carlos.blog_api.repository.UserRepository;
 import io.jsonwebtoken.Claims;
@@ -16,12 +18,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class UserService {
@@ -74,6 +74,17 @@ public class UserService {
 
     public void deleteUser(Integer idUser){
         userRepository.deleteById(idUser);
+    }
+
+    public UserDTO changeAdminUser(Integer idUser){
+        Optional<UserEntity> userEntityOptional = userRepository.findById(idUser);
+        if(!userEntityOptional.isPresent()){
+            throw new RuntimeException("User not found!");
+        }
+        UserEntity userEntity = userEntityOptional.get();
+        userEntity.setRoleUser(UserRole.ADMIN);
+        userRepository.save(userEntity);
+        return userMapper.convertToDTO(userEntity);
     }
 
     public String loginUser(AuthenticationDTO authDTO){
@@ -130,5 +141,28 @@ public class UserService {
 
     public Optional<UserEntity> findByUsername(String username){
         return userRepository.findByUsername(username);
+    }
+    
+    public UserDTO register(RegisterDTO dto) throws Exception {
+        if(userRepository.findByUsername(dto.getUsername()).isPresent()){
+            throw new Exception("This username is registered!");
+        }
+        if(userRepository.findByEmailUser(dto.getUsername()).isPresent()){
+            throw new Exception("This email is registered!");
+        }
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+
+        String passEncrypted = bCryptPasswordEncoder.encode(dto.getPassword());
+        
+        UserEntity entity = new UserEntity();
+        entity.setRoleUser(UserRole.USER);
+        entity.setPasswordUser(passEncrypted);
+        entity.setEmailUser(dto.getEmail());
+        entity.setUsername(dto.getUsername());
+        entity.setComments(new HashSet<>());
+        entity.setPosts(new HashSet<>());
+
+        userRepository.save(entity);
+        return userMapper.convertToDTO(entity);
     }
 }
