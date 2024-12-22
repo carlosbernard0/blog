@@ -13,12 +13,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
-
 @RequiredArgsConstructor
 public class SecurityFilter extends OncePerRequestFilter {
 
-    private final UserService userService;
+    private final TokenService tokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -28,7 +26,7 @@ public class SecurityFilter extends OncePerRequestFilter {
 
         //validar o token
         try {
-            UserEntity userEntity = userService.validateToken(tokenBearer);
+            UserEntity userEntity = tokenService.validateToken(tokenBearer);
             if(userEntity == null){
                 throw new RuntimeException("Error! User is Null.");
             }

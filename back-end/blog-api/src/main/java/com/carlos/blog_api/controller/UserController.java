@@ -2,6 +2,7 @@ package com.carlos.blog_api.controller;
 
 import com.carlos.blog_api.dto.UserDTO;
 import com.carlos.blog_api.entity.UserEntity;
+import com.carlos.blog_api.service.EmailService;
 import com.carlos.blog_api.service.UserService;
 import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,12 +16,13 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private EmailService emailService;
 
     @GetMapping("/{idUser}")
     public UserDTO getUser(@PathVariable Integer idUser){
         return userService.getUser(idUser);
     }
-
 
     @GetMapping
     public List<UserDTO> getAllUsers(){
@@ -46,4 +48,7 @@ public class UserController {
     public UserDTO changeAdminUser(@PathVariable Integer idUSer){
         return userService.changeAdminUser(idUSer);
     }
+
+
+
 }

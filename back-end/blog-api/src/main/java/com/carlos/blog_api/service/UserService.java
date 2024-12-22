@@ -7,9 +7,11 @@ import com.carlos.blog_api.entity.UserEntity;
 import com.carlos.blog_api.enums.UserRole;
 import com.carlos.blog_api.mapper.UserMapper;
 import com.carlos.blog_api.repository.UserRepository;
+import com.carlos.blog_api.security.TokenService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,16 +31,25 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
+    private final TokenService tokenService;
 
     @Value("${api.security.token.secret}")
     private String secret;
     @Value("${api.security.token.validate}")
     private String validateJWT;
 
-    public UserService(@Lazy AuthenticationManager authenticationManager, UserMapper userMapper,@Lazy UserRepository userRepository) {
+    public UserService(@Lazy AuthenticationManager authenticationManager,
+                       UserMapper userMapper,
+                       @Lazy UserRepository userRepository,
+                       EmailService emailService,
+                       @Lazy TokenService tokenService
+   ) {
         this.authenticationManager = authenticationManager;
         this.userMapper = userMapper;
         this.userRepository = userRepository;
+        this.emailService = emailService;
+        this.tokenService = tokenService;
     }
 
     public UserDTO createUser(UserDTO userDTO){
@@ -100,18 +111,9 @@ public class UserService {
             Object userAuth = authentication.getPrincipal();
             UserEntity userEntity = (UserEntity) userAuth;
 
-            Date dateNow = new Date();
-            Date dateExpiration = new Date(dateNow.getTime() + Long.parseLong(validateJWT));
+            String token = tokenService.createToken(userEntity.getIdUser().toString());
 
-            String jwt = Jwts.builder()
-                    .setIssuer("blog-api")
-                    .setSubject(userEntity.getIdUser().toString())
-                    .setIssuedAt(new Date())
-                    .setExpiration(dateExpiration)
-                    .signWith(SignatureAlgorithm.HS256,secret)
-                    .compact();
-
-            return jwt;
+            return token;
 
         }catch (AuthenticationException ex){
             System.out.println(ex);
@@ -120,29 +122,17 @@ public class UserService {
         }
     }
 
-    public UserEntity validateToken(String token) throws Exception {
-        if(token == null){
-            throw  new Exception("Token not found!");
-        }
-
-        String tokenClean = token.replace("Bearer ", "");
-
-        Claims claims = Jwts.parser()
-                .setSigningKey(secret) // acesso com a secret
-                .parseClaimsJws(tokenClean)  //valida o token e decriptografa
-                .getBody(); //recupera o payload o token
-
-        String subject = claims.getSubject(); //id do usuario que foi utilizado para fazer o login
-
-        Optional<UserEntity> user = userRepository.findById(Integer.parseInt(subject));
-
-        return user.orElse(null);
+    public Optional<UserEntity> findById(Integer id){
+        return userRepository.findById(id);
     }
 
     public Optional<UserEntity> findByUsername(String username){
         return userRepository.findByUsername(username);
     }
-    
+
+    public Optional<UserEntity> findByEmail(String email){
+        return userRepository.findByEmailUser(email);
+    }
     public UserDTO register(RegisterDTO dto) throws Exception {
         if(userRepository.findByUsername(dto.getUsername()).isPresent()){
             throw new Exception("This username is registered!");
@@ -150,9 +140,8 @@ public class UserService {
         if(userRepository.findByEmailUser(dto.getUsername()).isPresent()){
             throw new Exception("This email is registered!");
         }
-        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
-        String passEncrypted = bCryptPasswordEncoder.encode(dto.getPassword());
+        String passEncrypted = this.encryptedPass(dto.getPassword());
         
         UserEntity entity = new UserEntity();
         entity.setRoleUser(UserRole.USER);
@@ -165,4 +154,50 @@ public class UserService {
         userRepository.save(entity);
         return userMapper.convertToDTO(entity);
     }
+
+    public String sendEmailForChangePass(String email){
+        Optional<UserEntity> userEntityOptional =userRepository.findByEmailUser(email);
+        if(!userEntityOptional.isPresent()){
+            throw new RuntimeException("User is not found in DATABASE!");
+        }
+
+        String token = tokenService.createToken(email);
+
+        //caminho do para a tela de troca de senha do front;
+        String resetLink ="http://localhost:5173/login/password_recovery?token=" + token;
+
+        emailService.sendTextEmail(
+                email,
+                "Recuperação de Senha",
+                "Seu token: " +   token +
+                        "\n Clique no link para recuperar sua senha: "
+                        + resetLink + "\n O link de recuperação de senha expira em 5 minutos! " +
+                        "\n Se você não fez essa solicitação, ignore esse email."
+        );
+        return "E-mail enviado com sucesso!";
+
+
+    }
+
+    public String changePassword(String token,String newPassword) throws Exception {
+
+        try{
+            UserEntity userEntity = tokenService.validateToken(token);
+            String newPasswordEncrypted = this.encryptedPass(newPassword);
+
+            userEntity.setPasswordUser(newPasswordEncrypted);
+            userRepository.save(userEntity);
+            return "User Updated and Pass: " + newPassword + " is encrypted...";
+
+        }catch (Exception e){
+            throw new Exception(e);
+        }
+    }
+
+    public String encryptedPass(String pass){
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+
+        return bCryptPasswordEncoder.encode(pass);
+    }
+
 }
