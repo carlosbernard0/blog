@@ -6,7 +6,7 @@ public class CreateOfPasswords {
     public static void main(String[] args) {
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
-           String senhaCriptografada = bCryptPasswordEncoder.encode("1");
+           String senhaCriptografada = bCryptPasswordEncoder.encode("carlos");
         System.out.println(senhaCriptografada);
 
 

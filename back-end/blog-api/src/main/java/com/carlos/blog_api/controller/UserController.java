@@ -49,6 +49,14 @@ public class UserController {
         return userService.changeAdminUser(idUSer);
     }
 
+    @PostMapping("/sendNumericCode")
+    public String generateAndSendNumericCode(@RequestParam String email)  {
+        return userService.generateAndSendNumericCode(email);
+    }
+    @PatchMapping("/changeTwoFactor")
+    public String changeTwoFactor(String numericCode, String email, Boolean twoFactorEnable) throws Exception {
+        return userService.changeTwoFactorEnable(numericCode, email, twoFactorEnable);
+    }
 
 
 }

@@ -8,6 +8,7 @@ import com.carlos.blog_api.enums.UserRole;
 import com.carlos.blog_api.mapper.UserMapper;
 import com.carlos.blog_api.repository.UserRepository;
 import com.carlos.blog_api.security.TokenService;
+import com.github.benmanes.caffeine.cache.Cache;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -20,9 +21,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.util.*;
 
 @Service
@@ -33,23 +36,21 @@ public class UserService {
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
     private final TokenService tokenService;
-
-    @Value("${api.security.token.secret}")
-    private String secret;
-    @Value("${api.security.token.validate}")
-    private String validateJWT;
+    private final Cache<String, String> cache;
 
     public UserService(@Lazy AuthenticationManager authenticationManager,
                        UserMapper userMapper,
                        @Lazy UserRepository userRepository,
                        EmailService emailService,
-                       @Lazy TokenService tokenService
+                       @Lazy TokenService tokenService,
+                       Cache<String, String> cache
    ) {
         this.authenticationManager = authenticationManager;
         this.userMapper = userMapper;
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.tokenService = tokenService;
+        this.cache = cache;
     }
 
     public UserDTO createUser(UserDTO userDTO){
@@ -111,6 +112,18 @@ public class UserService {
             Object userAuth = authentication.getPrincipal();
             UserEntity userEntity = (UserEntity) userAuth;
 
+            if(userEntity.getTwoFactorEnabled() == null){
+                String token = tokenService.createToken(userEntity.getIdUser().toString());
+
+                return token;
+            }
+            if(userEntity.getTwoFactorEnabled()){
+
+                generateAndSendNumericCode(userEntity.getEmailUser());
+
+                return "Foi enviado um email para verificação de duas etapas";
+            }
+
             String token = tokenService.createToken(userEntity.getIdUser().toString());
 
             return token;
@@ -145,6 +158,7 @@ public class UserService {
         
         UserEntity entity = new UserEntity();
         entity.setRoleUser(UserRole.USER);
+        entity.setTwoFactorEnabled(false);
         entity.setPasswordUser(passEncrypted);
         entity.setEmailUser(dto.getEmail());
         entity.setUsername(dto.getUsername());
@@ -175,12 +189,9 @@ public class UserService {
                         "\n Se você não fez essa solicitação, ignore esse email."
         );
         return "E-mail enviado com sucesso!";
-
-
     }
 
     public String changePassword(String token,String newPassword) throws Exception {
-
         try{
             UserEntity userEntity = tokenService.validateToken(token);
             String newPasswordEncrypted = this.encryptedPass(newPassword);
@@ -194,10 +205,70 @@ public class UserService {
         }
     }
 
-    public String encryptedPass(String pass){
+    private String encryptedPass(String pass){
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
         return bCryptPasswordEncoder.encode(pass);
+    }
+
+    public String generateTokenTwoFactor(String numericCode, String email) throws Exception {
+
+        String cacheCode = cache.getIfPresent(email);
+        if(Objects.equals(numericCode, cacheCode)){
+            Optional<UserEntity> userEntityOptional = userRepository.findByEmailUser(email);
+            if(userEntityOptional.isPresent()){
+                UserEntity userEntity = userEntityOptional.get();
+                String token = tokenService.createToken(userEntity.getIdUser().toString());
+                return token;
+            }else {
+
+                throw new Exception("Email is not found in database!");
+            }
+        }else{
+            return "The numeric code is not equals for the code gerated";
+        }
+
+
+    }
+
+    public String generateAndSendNumericCode(String email){
+
+        String numericCode = generateNumericCode();
+
+        emailService.sendTextEmail(
+                email,
+                "Codigo de autenticacao de dois fatores",
+                "Seu código: " +   numericCode + "\n" +
+                        "Este código tem 5 minutos ate a expiração"
+        );
+
+        cache.put(email, numericCode);
+
+        return "The numeric code is send in your email!";
+    }
+
+    public String changeTwoFactorEnable(String numericCode, String email, Boolean twoFactorEnable) throws Exception {
+        String cacheCode = cache.getIfPresent(email);
+        if(Objects.equals(numericCode, cacheCode)){
+            Optional<UserEntity> userEntityOptional = userRepository.findByEmailUser(email);
+            if(userEntityOptional.isPresent()){
+                UserEntity userEntity = userEntityOptional.get();
+                userEntity.setTwoFactorEnabled(twoFactorEnable);
+                userRepository.save(userEntity);
+                return "The user with email " + email + " , Two Factor is enabled: "+ userEntity.getTwoFactorEnabled();
+            }else {
+
+                throw new Exception("Email is not found in database!");
+            }
+        }else{
+            return "O numero nao condiz com o codigo que foi gerado";
+        }
+    }
+
+    private String generateNumericCode(){
+        SecureRandom random = new SecureRandom();
+        int code = 100000 + random.nextInt(900000);
+        return String.valueOf(code);
     }
 
 }

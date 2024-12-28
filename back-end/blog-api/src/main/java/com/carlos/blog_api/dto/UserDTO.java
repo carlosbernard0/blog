@@ -32,4 +32,8 @@ public class UserDTO {
     @JsonProperty("role_user")
     @Schema(description = "cargo do usuario", example = "1")
     private UserRole roleUser;
+
+    @JsonProperty("two_factor_enabled")
+    @Schema(description = "Auntenticação de dois fatores do usuario habilitada", example = "false")
+    private Boolean twoFactorEnabled;
 }

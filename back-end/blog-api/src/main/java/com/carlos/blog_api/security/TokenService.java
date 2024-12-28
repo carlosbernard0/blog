@@ -67,8 +67,6 @@ public class TokenService {
             user = userService.findById(Integer.parseInt(subject));
 
         }
-
-
         return user.orElse(null);
     }
 }

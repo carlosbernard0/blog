@@ -38,6 +38,9 @@ public class UserEntity implements UserDetails {
     @Enumerated(EnumType.STRING)
     private UserRole roleUser;
 
+    @Column(name = "two_factor_enabled")
+    private Boolean twoFactorEnabled;
+
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
     private Set<PostEntity> posts;
 
