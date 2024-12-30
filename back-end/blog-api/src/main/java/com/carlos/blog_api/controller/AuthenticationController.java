@@ -39,6 +39,4 @@ public class AuthenticationController {
     public String validateLoginTwoFactor(@RequestParam String numericCode,@RequestParam String email) throws Exception {
         return userService.generateTokenTwoFactor(numericCode, email);
     }
-
-
 }

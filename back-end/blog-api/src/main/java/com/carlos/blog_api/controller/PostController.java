@@ -27,9 +27,9 @@ public class PostController {
     }
 
 
-    @PostMapping("/{idUser}")
-    public PostDTO createPost(@RequestBody PostDTOCreateUpdate post, Integer idUser){
-        return postService.createPost(post,idUser);
+    @PostMapping
+    public PostDTO createPost(@RequestBody PostDTOCreateUpdate post){
+        return postService.createPost(post);
     }
     @PutMapping("/{idPost}")
     public PostDTO updatePost(@RequestBody PostDTOCreateUpdate postDTO, @PathVariable Integer idPost){

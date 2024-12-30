@@ -2,6 +2,7 @@ package com.carlos.blog_api.service;
 
 import com.carlos.blog_api.dto.PostDTO;
 import com.carlos.blog_api.dto.PostDTOCreateUpdate;
+import com.carlos.blog_api.dto.UserDTO;
 import com.carlos.blog_api.entity.PostEntity;
 import com.carlos.blog_api.entity.UserEntity;
 import com.carlos.blog_api.enums.PostStatus;
@@ -25,14 +26,18 @@ public class PostService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private UserService userService;
+
 
     public PostService(PostRepository postRepository) {
         this.postRepository = postRepository;
     }
 
 
-    public PostDTO createPost(PostDTOCreateUpdate postDTO, Integer idUser){
-        Optional<UserEntity> user = userRepository.findById(idUser);
+    public PostDTO createPost(PostDTOCreateUpdate postDTO){
+        UserDTO userRecover = userService.recoverUser();
+        Optional<UserEntity> user = userRepository.findById(userRecover.getIdUser());
         PostEntity postEntity = postMapper.convertToEntityCreate(postDTO);
         postEntity.setUser(user.get());
         postEntity.setIdUser(user.get().getIdUser());
@@ -74,8 +79,8 @@ public class PostService {
         postRepository.deleteById(idPost);
     }
 
-    public PostDTO approvePost(Integer id){
-        Optional<PostEntity> postEntityOptional = postRepository.findById(id);
+    public PostDTO approvePost(Integer idPost){
+        Optional<PostEntity> postEntityOptional = postRepository.findById(idPost);
         if(postEntityOptional.isPresent()){
             PostEntity post = postEntityOptional.get();
             post.setStatusPost(PostStatus.APPROVED);

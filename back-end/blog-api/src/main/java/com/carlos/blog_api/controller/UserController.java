@@ -34,9 +34,9 @@ public class UserController {
     public UserDTO createUser(@RequestBody UserDTO user){
         return userService.createUser(user);
     }
-    @PutMapping("/{id}")
-    public UserDTO updateUser(@RequestBody UserDTO user, @PathVariable Integer id){
-        return userService.updateUser(user, id);
+    @PutMapping
+    public UserDTO updateUser(@RequestBody UserDTO user){
+        return userService.updateUser(user);
     }
 
     @DeleteMapping("/{idUser}")
@@ -54,8 +54,8 @@ public class UserController {
         return userService.generateAndSendNumericCode(email);
     }
     @PatchMapping("/changeTwoFactor")
-    public String changeTwoFactor(String numericCode, String email, Boolean twoFactorEnable) throws Exception {
-        return userService.changeTwoFactorEnable(numericCode, email, twoFactorEnable);
+    public String changeTwoFactor(@RequestParam(required = false) String numericCode) throws Exception {
+        return userService.changeTwoFactorEnable( numericCode);
     }
 
 

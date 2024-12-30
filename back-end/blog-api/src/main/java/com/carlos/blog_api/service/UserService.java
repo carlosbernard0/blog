@@ -9,19 +9,12 @@ import com.carlos.blog_api.mapper.UserMapper;
 import com.carlos.blog_api.repository.UserRepository;
 import com.carlos.blog_api.security.TokenService;
 import com.github.benmanes.caffeine.cache.Cache;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import jakarta.validation.constraints.Email;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -72,10 +65,11 @@ public class UserService {
         return userRepository.findAll().stream().map(userMapper::convertToDTO).toList();
     }
 
-    public UserDTO updateUser(UserDTO userDTO, Integer idUser){
-        Optional<UserEntity> userEntityOptional = userRepository.findById(idUser);
+    public UserDTO updateUser(UserDTO userDTO){
+        UserDTO userRecover = recoverUser();
+        Optional<UserEntity> userEntityOptional = userRepository.findById(userRecover.getIdUser());
         if(userEntityOptional.isPresent()){
-            userDTO.setIdUser(idUser);
+            userDTO.setIdUser(userRecover.getIdUser());
             UserEntity userUpdated = userMapper.convertToEntity(userDTO);
             userRepository.save(userUpdated);
             return userMapper.convertToDTO(userUpdated);
@@ -146,6 +140,7 @@ public class UserService {
     public Optional<UserEntity> findByEmail(String email){
         return userRepository.findByEmailUser(email);
     }
+
     public UserDTO register(RegisterDTO dto) throws Exception {
         if(userRepository.findByUsername(dto.getUsername()).isPresent()){
             throw new Exception("This username is registered!");
@@ -221,14 +216,11 @@ public class UserService {
                 String token = tokenService.createToken(userEntity.getIdUser().toString());
                 return token;
             }else {
-
                 throw new Exception("Email is not found in database!");
             }
         }else{
             return "The numeric code is not equals for the code gerated";
         }
-
-
     }
 
     public String generateAndSendNumericCode(String email){
@@ -247,21 +239,29 @@ public class UserService {
         return "The numeric code is send in your email!";
     }
 
-    public String changeTwoFactorEnable(String numericCode, String email, Boolean twoFactorEnable) throws Exception {
-        String cacheCode = cache.getIfPresent(email);
-        if(Objects.equals(numericCode, cacheCode)){
-            Optional<UserEntity> userEntityOptional = userRepository.findByEmailUser(email);
-            if(userEntityOptional.isPresent()){
-                UserEntity userEntity = userEntityOptional.get();
-                userEntity.setTwoFactorEnabled(twoFactorEnable);
+    public String changeTwoFactorEnable(String numericCode) throws Exception {
+        UserDTO userDTO = recoverUser();
+        Optional<UserEntity> userEntityOptional = userRepository.findByEmailUser(userDTO.getEmailUser());
+        if(userEntityOptional.isPresent()){
+            UserEntity userEntity = userEntityOptional.get();
+            if(userEntity.getTwoFactorEnabled()){
+                userEntity.setTwoFactorEnabled(false);
                 userRepository.save(userEntity);
-                return "The user with email " + email + " , Two Factor is enabled: "+ userEntity.getTwoFactorEnabled();
-            }else {
-
-                throw new Exception("Email is not found in database!");
+                return "The user with email " + userDTO.getEmailUser() + " , Two Factor is enabled: "+ userEntity.getTwoFactorEnabled();
             }
-        }else{
-            return "O numero nao condiz com o codigo que foi gerado";
+            String cacheCode = cache.getIfPresent(userDTO.getEmailUser());
+            if(cacheCode == null){
+                throw new Exception("Send a email for Two verification");
+            }
+            if(Objects.equals(numericCode, cacheCode)){
+                    userEntity.setTwoFactorEnabled(true);
+                    userRepository.save(userEntity);
+                return "The user with email " + userDTO.getEmailUser() + " , Two Factor is enabled: "+ userEntity.getTwoFactorEnabled();
+            }else{
+                return "O numero nao condiz com o codigo que foi gerado";
+            }
+        }else {
+            throw new Exception("Email is not found in database!");
         }
     }
 
@@ -271,4 +271,11 @@ public class UserService {
         return String.valueOf(code);
     }
 
+
+    public UserDTO recoverUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Object user = authentication.getPrincipal();
+        UserEntity userEntity = (UserEntity) user;
+        return userMapper.convertToDTO(userEntity);
+    }
 }
